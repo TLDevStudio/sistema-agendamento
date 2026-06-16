@@ -45,8 +45,7 @@ const today = new Date();
 today.setHours(0, 0, 0, 0);
 
 /* ── Init ── */
-// DEPOIS
-const API = 'http://localhost:3000';
+const API = 'https://sistema-agendamento-qgta.onrender.com';;
 
 async function init() {
     state.viewYear = today.getFullYear();
