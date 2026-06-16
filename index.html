@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Agendamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+
+  <div class="page-wrap">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">Agendamento Online</div>
+      <h1>Nome da Sua Empresa</h1>
+      <p>O que você trabalha &nbsp;·&nbsp; Localidade, RJ</p>
+    </div>
+
+    <!-- Step bar -->
+    <div class="steps-bar" id="stepsBar">
+      <div class="step-pip active" id="pip0"></div>
+      <div class="step-pip" id="pip1"></div>
+      <div class="step-pip" id="pip2"></div>
+      <div class="step-pip" id="pip3"></div>
+    </div>
+    <div class="step-label" id="stepLabel">Escolha o serviço</div>
+
+    <!-- Main card -->
+    <div class="card">
+
+      <!-- Step 0: Serviços -->
+      <div class="step-content active" id="s0">
+        <div class="step-heading">Qual serviço você deseja?</div>
+        <div class="step-sub">Selecione para ver disponibilidade</div>
+        <div class="services-grid" id="servicesGrid"></div>
+        <button class="btn-primary" id="btnS0" disabled onclick="goStep(1)">
+          Escolher data &nbsp;→
+        </button>
+      </div>
+
+      <!-- Step 1: Calendário -->
+      <div class="step-content" id="s1">
+        <div class="step-heading">Quando você vem?</div>
+        <div class="step-sub">Escolha uma data disponível</div>
+        <div class="cal-header">
+          <button class="cal-nav" onclick="changeMonth(-1)" aria-label="Mês anterior">&#8249;</button>
+          <span class="cal-month" id="calMonth"></span>
+          <button class="cal-nav" onclick="changeMonth(1)" aria-label="Próximo mês">&#8250;</button>
+        </div>
+        <div class="cal-weekdays">
+          <div class="cal-wd">D</div>
+          <div class="cal-wd">S</div>
+          <div class="cal-wd">T</div>
+          <div class="cal-wd">Q</div>
+          <div class="cal-wd">Q</div>
+          <div class="cal-wd">S</div>
+          <div class="cal-wd">S</div>
+        </div>
+        <div class="cal-days" id="calDays"></div>
+        <div class="divider"></div>
+        <button class="btn-primary" id="btnS1" disabled onclick="goStep(2)">
+          Ver horários &nbsp;→
+        </button>
+        <button class="btn-ghost" onclick="goStep(0)">← Voltar</button>
+      </div>
+
+      <!-- Step 2: Horários -->
+      <div class="step-content" id="s2">
+        <div class="step-heading">Escolha o horário</div>
+        <div class="times-intro">Disponível em <span id="dateLabel"></span></div>
+        <div class="time-legend">
+          <span><i class="dot dot-avail"></i> Disponível</span>
+          <span><i class="dot dot-busy"></i> Ocupado</span>
+        </div>
+        <div class="times-grid" id="timesGrid"></div>
+        <button class="btn-primary" id="btnS2" disabled onclick="goStep(3)">
+          Confirmar horário &nbsp;→
+        </button>
+        <button class="btn-ghost" onclick="goStep(1)">← Voltar</button>
+      </div>
+
+      <!-- Step 3: Dados + confirmação -->
+      <div class="step-content" id="s3">
+        <div class="step-heading">Seus dados</div>
+        <div class="step-sub">Para confirmarmos seu horário</div>
+        <div class="form-row">
+          <label class="form-label" for="inputNome">Nome completo</label>
+          <input class="form-input" type="text" id="inputNome" placeholder="Maria Silva" autocomplete="name"
+            oninput="checkForm()" />
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="inputWpp">WhatsApp</label>
+          <input class="form-input" type="tel" id="inputWpp" placeholder="(21) 99999-0000" autocomplete="tel"
+            oninput="maskPhone(this); checkForm()" />
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="inputObs">Observação (opcional)</label>
+          <input class="form-input" type="text" id="inputObs" placeholder="Ex: Alergia a amônia" />
+        </div>
+        <div class="divider"></div>
+        <div class="summary">
+          <div class="summary-title">Resumo do agendamento</div>
+          <div class="summary-row"><span>Serviço</span><strong id="sumService"></strong></div>
+          <div class="summary-row"><span>Data</span><strong id="sumDate"></strong></div>
+          <div class="summary-row"><span>Horário</span><strong id="sumTime"></strong></div>
+          <div class="summary-row"><span>Duração</span><strong id="sumDuration"></strong></div>
+          <div class="summary-divider"></div>
+          <div class="summary-total"><span>Total</span><span class="price" id="sumPrice"></span></div>
+        </div>
+        <button class="btn-primary" id="btnS3" disabled onclick="confirmBooking()">
+          ✓ &nbsp;Confirmar agendamento
+        </button>
+        <button class="btn-ghost" onclick="goStep(2)">← Voltar</button>
+      </div>
+
+      <!-- Step 4: Sucesso -->
+      <div class="step-content" id="s4">
+        <div class="success-wrap">
+          <div class="success-icon-wrap">✓</div>
+          <div class="success-title">Agendado!</div>
+          <div class="success-msg" id="successMsg"></div>
+          <div class="success-card" id="successCard"></div>
+          <button class="btn-whatsapp" onclick="sendWhatsApp()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            </svg>
+            Confirmar pelo WhatsApp
+          </button>
+          <button class="btn-ghost" onclick="restart()">Fazer outro agendamento</button>
+        </div>
+      </div>
+
+    </div><!-- /card -->
+
+    <div class="footer">
+      Seg a Sáb &nbsp;·&nbsp; 9h às 19h<br>
+      <a href="tel:+5521980000000">(21) 98000-0000</a>
+      &nbsp;·&nbsp;
+      <a href="#">Ver no mapa</a>
+    </div>
+
+  </div><!-- /page-wrap -->
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./js/script.js"></script>
+
+</body>
+
+</html>
