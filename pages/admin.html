@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin · Studio Harmonia</title>
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">
+            <div class="logo-dot"></div>
+            Studio Harmonia · Admin
+        </div>
+        <span class="badge-live">PAINEL</span>
+    </header>
+
+    <div class="toolbar">
+        <div class="date-picker">
+            <label>Data</label>
+            <input type="date" id="datePicker" />
+        </div>
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="setFilter('todos')">Todos</button>
+            <button class="filter-tab" onclick="setFilter('confirmado')">Confirmados</button>
+            <button class="filter-tab" onclick="setFilter('cancelado')">Cancelados</button>
+        </div>
+        <button class="btn-refresh" onclick="loadAgendamentos()">↻ Atualizar</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-label">Total do dia</div>
+            <div class="stat-value" id="statTotal">—</div>
+            <div class="stat-sub">agendamentos</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Confirmados</div>
+            <div class="stat-value" id="statConfirm">—</div>
+            <div class="stat-sub">no dia</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Cancelados</div>
+            <div class="stat-value" id="statCancel">—</div>
+            <div class="stat-sub">no dia</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Receita prevista</div>
+            <div class="stat-value" id="statRevenue">—</div>
+            <div class="stat-sub">confirmados</div>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <div class="section-title" id="tableTitle">Agendamentos</div>
+        <div id="tableContent">
+            <div class="loading">
+                <div class="spinner"></div> Carregando...
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src=../js/admin.js></script>
+
+</body>
+
+</html>
