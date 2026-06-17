@@ -227,9 +227,23 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// POST /admin/login
+app.post('/admin/login', (req, res) => {
+    const { password } = req.body;
+    const senha = process.env.ADMIN_PASSWORD || 'harmonia2026';
+    if (password === senha) {
+        res.json({ ok: true });
+    } else {
+        res.status(401).json({ error: 'Senha incorreta.' });
+    }
+});
+
 /* ── Start ── */
 app.listen(PORT, () => {
-    console.log(`\n🌿 Studio Harmonia Backend`);
-    console.log(`   Rodando em http://localhost:${PORT}`);
-    console.log(`   Banco de dados: db.json\n`);
-});
+
+    /* ── Start ── */
+    app.listen(PORT, () => {
+        console.log(`\n🌿 Studio Harmonia Backend`);
+        console.log(`   Rodando em http://localhost:${PORT}`);
+        console.log(`   Banco de dados: db.json\n`);
+    });
