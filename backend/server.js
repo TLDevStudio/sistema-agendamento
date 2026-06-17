@@ -240,10 +240,7 @@ app.post('/admin/login', (req, res) => {
 
 /* ── Start ── */
 app.listen(PORT, () => {
-
-    /* ── Start ── */
-    app.listen(PORT, () => {
-        console.log(`\n🌿 Studio Harmonia Backend`);
-        console.log(`   Rodando em http://localhost:${PORT}`);
-        console.log(`   Banco de dados: db.json\n`);
-    });
+    console.log(`\n🌿 Studio Harmonia Backend`);
+    console.log(`   Rodando em http://localhost:${PORT}`);
+    console.log(`   Banco de dados: db.json\n`);
+});
