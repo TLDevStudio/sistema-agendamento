@@ -24,12 +24,12 @@ db.defaults({
 
 /* ── Serviços cadastrados ── */
 const SERVICES = [
-    { id: 0, name: 'Corte & Escova', duration: 60, price: 80 },
-    { id: 1, name: 'Coloração', duration: 120, price: 180 },
-    { id: 2, name: 'Hidratação', duration: 45, price: 60 },
-    { id: 3, name: 'Manicure', duration: 40, price: 45 },
-    { id: 4, name: 'Tratamento Capilar', duration: 90, price: 120 },
-    { id: 5, name: 'Massagem Craniana', duration: 30, price: 50 },
+    { id: 0, name: 'Serviço 1', duration: 0, price: 0 },
+    { id: 1, name: 'Serviço 2', duration: 0, price: 0 },
+    { id: 2, name: 'Serviço 3', duration: 0, price: 0 },
+    { id: 3, name: 'Serviço 4', duration: 0, price: 0 },
+    { id: 4, name: 'Serviço 5', duration: 0, price: 0 },
+    { id: 5, name: 'Serviço 6', duration: 0, price: 0 },
 ];
 
 /* ── Express ── */
