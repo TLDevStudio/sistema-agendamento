@@ -4,6 +4,7 @@ let currentFilter = 'todos';
 let currentTab = 'hoje';
 
 const MONTHS_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const DAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 /* ── Init ── */
 function init() {
@@ -67,12 +68,12 @@ function showPainel() {
         <div style="display:flex;border-bottom:1px solid #2a2a2a;">
             <button id="tab-hoje" onclick="switchTab('hoje')"
                 style="padding:14px 28px;background:transparent;border:none;border-bottom:2px solid #c8f564;
-                       color:#f0f0f0;font-family:DM Sans,sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;">
+                       color:#f0f0f0;font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;">
                 📅 Hoje
             </button>
             <button id="tab-historico" onclick="switchTab('historico')"
                 style="padding:14px 28px;background:transparent;border:none;border-bottom:2px solid transparent;
-                       color:#888;font-family:DM Sans,sans-serif;font-size:0.88rem;cursor:pointer;">
+                       color:#888;font-family:'DM Sans',sans-serif;font-size:0.88rem;cursor:pointer;">
                 📊 Histórico
             </button>
         </div>
@@ -129,13 +130,28 @@ function showPainel() {
                     <span id="histMonthLabel" style="font-size:0.95rem;font-weight:600;color:#f0f0f0;min-width:140px;text-align:center;"></span>
                     <button class="btn-refresh" onclick="changeHistMonth(1)">›</button>
                 </div>
-                <div id="histStats" style="display:flex;gap:24px;font-size:0.82rem;color:#888;"></div>
+                <div id="histStats" style="display:flex;gap:16px;font-size:0.82rem;color:#888;flex-wrap:wrap;"></div>
             </div>
             <div class="table-wrap">
                 <div id="histContent">
                     <div class="loading"><div class="spinner"></div> Carregando...</div>
                 </div>
             </div>
+        </div>
+
+        <!-- Modal de detalhes -->
+        <div id="modalOverlay" onclick="closeModal()"
+            style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;"></div>
+
+        <div id="modalSheet"
+            style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;
+                   border-radius:20px 20px 0 0;border-top:1px solid #2a2a2a;z-index:201;
+                   transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1);
+                   max-height:85vh;overflow-y:auto;">
+            <div style="text-align:center;padding:12px;">
+                <div style="width:40px;height:4px;background:#333;border-radius:2px;display:inline-block;"></div>
+            </div>
+            <div id="modalContent" style="padding:0 24px 40px;"></div>
         </div>
 
         <div class="toast" id="toast"></div>`;
@@ -145,6 +161,109 @@ function showPainel() {
     picker.addEventListener('change', loadAgendamentos);
     loadAgendamentos();
     setInterval(loadAgendamentos, 30000);
+}
+
+/* ── Modal ── */
+function openModal(ag) {
+    const [y, m, d] = ag.date.split('-');
+    const diaSemana = DAYS_PT[new Date(ag.date).getDay()];
+    const isCancel = ag.status === 'cancelado';
+
+    document.getElementById('modalContent').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+            <div>
+                <div style="font-size:1.2rem;font-weight:600;color:#f0f0f0;">${ag.nome}</div>
+                <div style="font-size:0.82rem;color:#888;margin-top:2px;">${diaSemana}, ${d}/${m}/${y}</div>
+            </div>
+            <span class="status-badge status-${ag.status}">${ag.status}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+            <div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:16px;">
+                <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Horário</div>
+                <div style="font-family:'DM Mono',monospace;font-size:1.4rem;color:#c8f564;font-weight:500;">${ag.time}</div>
+            </div>
+            <div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:16px;">
+                <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Valor</div>
+                <div style="font-family:'DM Mono',monospace;font-size:1.4rem;color:#c8f564;font-weight:500;">R$ ${ag.price}</div>
+            </div>
+            <div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:16px;">
+                <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Serviço</div>
+                <div style="font-size:0.92rem;color:#f0f0f0;font-weight:500;">${ag.service_name}</div>
+            </div>
+            <div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:16px;">
+                <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Duração</div>
+                <div style="font-size:0.92rem;color:#f0f0f0;font-weight:500;">${ag.duration} min</div>
+            </div>
+        </div>
+
+        <div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">WhatsApp</div>
+            <a href="https://wa.me/${ag.whatsapp}" target="_blank"
+               style="color:#c8f564;text-decoration:none;font-family:'DM Mono',monospace;font-size:0.92rem;">
+                📲 ${formatPhone(ag.whatsapp)}
+            </a>
+        </div>
+
+        ${ag.observacao ? `
+        <div style="background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Observação</div>
+            <div style="font-size:0.88rem;color:#f0f0f0;">${ag.observacao}</div>
+        </div>` : ''}
+
+        ${ag.cancelado_em ? `
+        <div style="background:#2a1a1a;border:1px solid #3a2a2a;border-radius:12px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Cancelado em</div>
+            <div style="font-size:0.88rem;color:#ff5c5c;">${new Date(ag.cancelado_em).toLocaleString('pt-BR')}</div>
+        </div>` : ''}
+
+        <div style="font-size:0.7rem;color:#555;margin-bottom:20px;">
+            Agendado em ${new Date(ag.criado_em).toLocaleString('pt-BR')}
+        </div>
+
+        ${!isCancel ? `
+        <button onclick="cancelarDoModal('${ag.id}')"
+            style="width:100%;padding:12px;border-radius:10px;border:1px solid #ff5c5c;
+                   background:transparent;color:#ff5c5c;font-family:'DM Sans',sans-serif;
+                   font-size:0.9rem;cursor:pointer;transition:all 0.15s;"
+            onmouseover="this.style.background='#ff5c5c';this.style.color='#fff'"
+            onmouseout="this.style.background='transparent';this.style.color='#ff5c5c'">
+            Cancelar agendamento
+        </button>` : ''}
+    `;
+
+    const overlay = document.getElementById('modalOverlay');
+    const sheet = document.getElementById('modalSheet');
+    overlay.style.display = 'block';
+    sheet.style.display = 'block';
+    requestAnimationFrame(() => {
+        sheet.style.transform = 'translateY(0)';
+    });
+}
+
+function closeModal() {
+    const sheet = document.getElementById('modalSheet');
+    const overlay = document.getElementById('modalOverlay');
+    sheet.style.transform = 'translateY(100%)';
+    setTimeout(() => {
+        sheet.style.display = 'none';
+        overlay.style.display = 'none';
+    }, 300);
+}
+
+async function cancelarDoModal(id) {
+    if (!confirm('Cancelar este agendamento?')) return;
+    try {
+        const res = await fetch(`${API}/agendamentos/${id}/cancelar`, { method: 'PATCH' });
+        if (res.ok) {
+            showToast('Agendamento cancelado.');
+            closeModal();
+            loadAgendamentos();
+            if (currentTab === 'historico') loadHistorico();
+        } else {
+            showToast('Erro ao cancelar.');
+        }
+    } catch { showToast('Erro de conexão.'); }
 }
 
 /* ── Tabs ── */
@@ -184,7 +303,6 @@ async function loadHistorico() {
         const data = await res.json();
         const todos = data.agendamentos || [];
 
-        // Filtra só o mês/ano selecionado
         const doMes = todos.filter(a => {
             const [y, m] = a.date.split('-').map(Number);
             return y === histYear && m === histMonth + 1;
@@ -205,18 +323,16 @@ function renderHistorico(dados) {
         return;
     }
 
-    // Stats do mês
     const confirmados = dados.filter(a => a.status === 'confirmado');
     const cancelados = dados.filter(a => a.status === 'cancelado');
     const receita = confirmados.reduce((s, a) => s + (a.price || 0), 0);
 
     document.getElementById('histStats').innerHTML = `
         <span>Total: <strong style="color:#f0f0f0">${dados.length}</strong></span>
-        <span>Confirmados: <strong style="color:#4ade80">${confirmados.length}</strong></span>
-        <span>Cancelados: <strong style="color:#ff5c5c">${cancelados.length}</strong></span>
-        <span>Receita: <strong style="color:#c8f564">R$ ${receita}</strong></span>`;
+        <span>✓ <strong style="color:#4ade80">${confirmados.length}</strong></span>
+        <span>✗ <strong style="color:#ff5c5c">${cancelados.length}</strong></span>
+        <span>R$ <strong style="color:#c8f564">${receita}</strong></span>`;
 
-    // Agrupa por dia
     const porDia = {};
     dados.forEach(a => {
         if (!porDia[a.date]) porDia[a.date] = [];
@@ -231,55 +347,47 @@ function renderHistorico(dados) {
         const conf = ags.filter(a => a.status === 'confirmado');
         const canc = ags.filter(a => a.status === 'cancelado');
         const rec = conf.reduce((s, a) => s + (a.price || 0), 0);
+        const diaSemana = DAYS_PT[new Date(date).getDay()];
 
-        const rows = ags.map(a => `
-            <tr>
-                <td class="td-time">${a.time}</td>
-                <td class="td-name">${a.nome}</td>
-                <td class="td-service">${a.service_name}</td>
-                <td class="td-price">R$ ${a.price}</td>
-                <td class="td-wpp">
-                    <a href="https://wa.me/${a.whatsapp}" target="_blank">📲 ${formatPhone(a.whatsapp)}</a>
-                </td>
-                <td><span class="status-badge status-${a.status}">${a.status}</span></td>
-            </tr>`).join('');
+        const cards = ags.map(a => `
+            <div onclick='openModal(${JSON.stringify(a)})'
+                style="display:flex;align-items:center;justify-content:space-between;
+                       padding:12px 16px;border:1px solid #2a2a2a;border-radius:10px;
+                       margin-bottom:8px;cursor:pointer;transition:background 0.15s;background:#0f0f0f;"
+                onmouseover="this.style.background='#1f1f1f'"
+                onmouseout="this.style.background='#0f0f0f'">
+                <div style="display:flex;align-items:center;gap:14px;">
+                    <span style="font-family:'DM Mono',monospace;font-size:0.95rem;color:#c8f564;font-weight:500;min-width:42px;">${a.time}</span>
+                    <div>
+                        <div style="font-size:0.88rem;font-weight:500;color:#f0f0f0;">${a.nome}</div>
+                        <div style="font-size:0.78rem;color:#888;margin-top:1px;">${a.service_name}</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-family:'DM Mono',monospace;font-size:0.82rem;color:#f0f0f0;">R$ ${a.price}</span>
+                    <span class="status-badge status-${a.status}" style="font-size:0.65rem;">${a.status}</span>
+                    <span style="color:#555;font-size:0.8rem;">›</span>
+                </div>
+            </div>`).join('');
 
         return `
-            <div style="margin-bottom:8px;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;">
+            <div style="margin-bottom:12px;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;">
                 <div onclick="toggleDia('dia-${date}')"
                     style="display:flex;align-items:center;justify-content:space-between;
                            padding:14px 20px;cursor:pointer;background:#1a1a1a;user-select:none;">
-                    <div style="display:flex;align-items:center;gap:16px;">
-                        <span style="font-family:DM Mono,monospace;font-size:1rem;color:#c8f564;font-weight:500;">${d}/${m}</span>
-                        <span style="font-size:0.82rem;color:#888;">${ags.length} agendamento(s)</span>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span style="font-family:'DM Mono',monospace;font-size:1rem;color:#c8f564;font-weight:500;">${d}/${m}</span>
+                        <span style="font-size:0.8rem;color:#888;">${diaSemana} · ${ags.length} agendamento(s)</span>
                     </div>
-                    <div style="display:flex;align-items:center;gap:16px;font-size:0.78rem;">
+                    <div style="display:flex;align-items:center;gap:12px;font-size:0.78rem;">
                         <span style="color:#4ade80">✓ ${conf.length}</span>
                         <span style="color:#ff5c5c">✗ ${canc.length}</span>
                         <span style="color:#c8f564">R$ ${rec}</span>
-                        <span style="color:#555;font-size:1rem;" id="arrow-dia-${date}">▼</span>
+                        <span style="color:#555;" id="arrow-dia-${date}">▼</span>
                     </div>
                 </div>
-                <div id="dia-${date}" style="display:none;">
-                    <table style="width:100%;border-collapse:collapse;">
-                        <thead>
-                            <tr>
-                                <th style="text-align:left;font-size:0.72rem;color:#888;text-transform:uppercase;
-                                           letter-spacing:0.06em;padding:10px 12px;font-weight:500;">Horário</th>
-                                <th style="text-align:left;font-size:0.72rem;color:#888;text-transform:uppercase;
-                                           letter-spacing:0.06em;padding:10px 12px;font-weight:500;">Cliente</th>
-                                <th style="text-align:left;font-size:0.72rem;color:#888;text-transform:uppercase;
-                                           letter-spacing:0.06em;padding:10px 12px;font-weight:500;">Serviço</th>
-                                <th style="text-align:left;font-size:0.72rem;color:#888;text-transform:uppercase;
-                                           letter-spacing:0.06em;padding:10px 12px;font-weight:500;">Valor</th>
-                                <th style="text-align:left;font-size:0.72rem;color:#888;text-transform:uppercase;
-                                           letter-spacing:0.06em;padding:10px 12px;font-weight:500;">WhatsApp</th>
-                                <th style="text-align:left;font-size:0.72rem;color:#888;text-transform:uppercase;
-                                           letter-spacing:0.06em;padding:10px 12px;font-weight:500;">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
+                <div id="dia-${date}" style="display:none;padding:12px 16px;">
+                    ${cards}
                 </div>
             </div>`;
     }).join('');
@@ -300,7 +408,6 @@ function logout() {
     showLogin();
 }
 
-/* ── Helpers de data ── */
 function todayStr() {
     const d = new Date();
     return d.getFullYear() + '-' +
@@ -308,7 +415,6 @@ function todayStr() {
         String(d.getDate()).padStart(2, '0');
 }
 
-/* ── Load ── */
 async function loadAgendamentos() {
     const date = document.getElementById('datePicker').value;
     document.getElementById('tableContent').innerHTML =
@@ -325,7 +431,6 @@ async function loadAgendamentos() {
     }
 }
 
-/* ── Stats ── */
 function updateStats() {
     const confirmados = allData.filter(a => a.status === 'confirmado');
     const cancelados = allData.filter(a => a.status === 'cancelado');
@@ -336,7 +441,6 @@ function updateStats() {
     document.getElementById('statRevenue').textContent = 'R$ ' + receita;
 }
 
-/* ── Filter ── */
 function setFilter(f, event) {
     currentFilter = f;
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -344,7 +448,6 @@ function setFilter(f, event) {
     renderTable();
 }
 
-/* ── Table ── */
 function renderTable() {
     const filtered = currentFilter === 'todos'
         ? allData
@@ -362,19 +465,12 @@ function renderTable() {
     }
 
     const rows = filtered.map(a => `
-        <tr id="row-${a.id}">
+        <tr style="cursor:pointer;" onclick='openModal(${JSON.stringify(a)})'>
             <td class="td-time">${a.time}</td>
             <td class="td-name">${a.nome}</td>
             <td class="td-service">${a.service_name}</td>
             <td class="td-price">R$ ${a.price}</td>
-            <td class="td-wpp">
-                <a href="https://wa.me/${a.whatsapp}" target="_blank">📲 ${formatPhone(a.whatsapp)}</a>
-            </td>
             <td><span class="status-badge status-${a.status}">${a.status}</span></td>
-            <td>
-                <button class="btn-cancel" onclick="cancelar('${a.id}')"
-                    ${a.status === 'cancelado' ? 'disabled' : ''}>Cancelar</button>
-            </td>
         </tr>`).join('');
 
     document.getElementById('tableContent').innerHTML = `
@@ -382,14 +478,13 @@ function renderTable() {
             <thead>
                 <tr>
                     <th>Horário</th><th>Cliente</th><th>Serviço</th>
-                    <th>Valor</th><th>WhatsApp</th><th>Status</th><th></th>
+                    <th>Valor</th><th>Status</th>
                 </tr>
             </thead>
             <tbody>${rows}</tbody>
         </table>`;
 }
 
-/* ── Cancel ── */
 async function cancelar(id) {
     if (!confirm('Cancelar este agendamento?')) return;
     try {
@@ -399,7 +494,6 @@ async function cancelar(id) {
     } catch { showToast('Erro de conexão.'); }
 }
 
-/* ── Helpers ── */
 function formatPhone(n) {
     if (!n) return '';
     const d = n.replace(/\D/g, '');
@@ -414,5 +508,4 @@ function showToast(msg) {
     setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-/* ── Start ── */
 init();

@@ -109,6 +109,7 @@ input[type="date"]:focus {
     display: flex;
     gap: 4px;
     margin-left: auto;
+    flex-wrap: wrap;
 }
 
 .filter-tab {
@@ -184,6 +185,7 @@ input[type="date"]:focus {
 /* ── Table ── */
 .table-wrap {
     padding: 24px 32px;
+    overflow-x: auto;
 }
 
 .section-title {
@@ -198,6 +200,7 @@ input[type="date"]:focus {
 table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 500px;
 }
 
 thead th {
@@ -208,6 +211,7 @@ thead th {
     letter-spacing: 0.06em;
     padding: 0 12px 10px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 tbody tr {
@@ -245,6 +249,7 @@ tbody td {
 .td-price {
     font-family: 'DM Mono', monospace;
     font-size: 0.88rem;
+    white-space: nowrap;
 }
 
 .td-wpp a {
@@ -252,6 +257,7 @@ tbody td {
     text-decoration: none;
     font-family: 'DM Mono', monospace;
     font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .status-badge {
@@ -262,6 +268,7 @@ tbody td {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    white-space: nowrap;
 }
 
 .status-confirmado {
@@ -284,6 +291,7 @@ tbody td {
     cursor: pointer;
     transition: all 0.15s;
     font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
 }
 
 .btn-cancel:hover {
@@ -364,21 +372,40 @@ tbody td {
 @media (max-width: 768px) {
 
     header,
-    .toolbar,
-    .table-wrap {
+    .toolbar {
         padding: 14px 16px;
+    }
+
+    .table-wrap {
+        padding: 14px 0;
     }
 
     .stats {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .filter-tabs {
-        margin-left: 0;
+    .stat {
+        padding: 16px;
     }
 
-    thead th:nth-child(n+5),
-    tbody td:nth-child(n+5) {
+    .filter-tabs {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .filter-tab {
+        flex: 1;
+        text-align: center;
+    }
+
+    /* Tabela vira scroll horizontal no mobile */
+    table {
+        min-width: 600px;
+    }
+
+    /* Esconde WhatsApp no mobile para dar espaço */
+    thead th:nth-child(5),
+    tbody td:nth-child(5) {
         display: none;
     }
 }
