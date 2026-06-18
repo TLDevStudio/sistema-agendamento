@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadastro · Studio Harmonia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="./css/style.css">
+    <style>
+        .auth-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--paper);
+            padding: 24px;
+        }
+
+        .auth-box {
+            width: 100%;
+            max-width: 420px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 40px 36px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .auth-logo {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            font-weight: 400;
+            color: var(--ink);
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+
+        .auth-sub {
+            font-size: 12px;
+            color: var(--ink-muted);
+            margin-bottom: 32px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            font-size: 13px;
+            color: var(--ink-muted);
+            margin-top: 20px;
+        }
+
+        .auth-footer a {
+            color: var(--ink);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .msg-success {
+            background: #eef6ee;
+            border: 1px solid #b6d9b6;
+            color: #2a6a2a;
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .msg-error {
+            background: #fdf0f0;
+            border: 1px solid #f5b8b8;
+            color: var(--danger);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-wrap">
+        <div class="auth-box">
+            <div class="auth-logo">Studio Harmonia</div>
+            <div class="auth-sub">Crie sua conta para agendar</div>
+
+            <div class="msg-success" id="msgSuccess"></div>
+            <div class="msg-error" id="msgError"></div>
+
+            <div class="form-row">
+                <label class="form-label" for="inputNome">Nome completo</label>
+                <input class="form-input" type="text" id="inputNome" placeholder="Maria Silva" />
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="inputEmail">Email</label>
+                <input class="form-input" type="email" id="inputEmail" placeholder="maria@email.com" />
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="inputSenha">Senha</label>
+                <input class="form-input" type="password" id="inputSenha" placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="inputConfirma">Confirmar senha</label>
+                <input class="form-input" type="password" id="inputConfirma" placeholder="Repita a senha" />
+            </div>
+
+            <button class="btn-primary" id="btnCadastro" onclick="cadastrar()" style="margin-top:8px;">
+                Criar conta
+            </button>
+
+            <div class="auth-footer">
+                Já tem conta? <a href="./login.html">Entrar</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'https://sistema-agendamento-qgta.onrender.com';
+
+        async function cadastrar() {
+            const nome = document.getElementById('inputNome').value.trim();
+            const email = document.getElementById('inputEmail').value.trim();
+            const senha = document.getElementById('inputSenha').value;
+            const confirma = document.getElementById('inputConfirma').value;
+
+            hideMessages();
+
+            if (!nome || !email || !senha || !confirma)
+                return showError('Preencha todos os campos.');
+
+            if (senha.length < 6)
+                return showError('A senha deve ter pelo menos 6 caracteres.');
+
+            if (senha !== confirma)
+                return showError('As senhas não coincidem.');
+
+            const btn = document.getElementById('btnCadastro');
+            btn.disabled = true;
+            btn.textContent = 'Aguarde...';
+
+            try {
+                const res = await fetch(`${API}/auth/cadastro`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, email, senha }),
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showSuccess('Cadastro realizado! Verifique seu email e clique no link de confirmação para ativar sua conta.');
+                    document.getElementById('inputNome').value = '';
+                    document.getElementById('inputEmail').value = '';
+                    document.getElementById('inputSenha').value = '';
+                    document.getElementById('inputConfirma').value = '';
+                } else {
+                    showError(data.error || 'Erro ao criar conta.');
+                }
+            } catch {
+                showError('Erro de conexão com o servidor.');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Criar conta';
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('msgSuccess');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('msgError');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('msgSuccess').style.display = 'none';
+            document.getElementById('msgError').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter') cadastrar();
+        });
+    </script>
+</body>
+
+</html>
