@@ -1,8 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
-/* ── Serviços cadastrados ── */
+/* ── Serviços ── */
 const SERVICES = [
     { id: 0, name: 'Serviço 1', duration: 0, price: 0 },
     { id: 1, name: 'Serviço 2', duration: 0, price: 0 },
@@ -23,9 +27,21 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB conectado'))
     .catch(err => console.error('❌ Erro MongoDB:', err));
 
+/* ── Schemas ── */
+const usuarioSchema = new mongoose.Schema({
+    nome: { type: String, required: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
+    senha: { type: String, required: true },
+    confirmado: { type: Boolean, default: false },
+    token_confirmacao: { type: String },
+    criado_em: { type: String, default: () => new Date().toISOString() },
+});
+
 const agendamentoSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
+    usuario_id: { type: String },
     nome: String,
+    email: String,
     whatsapp: String,
     date: String,
     time: String,
@@ -39,7 +55,40 @@ const agendamentoSchema = new mongoose.Schema({
     cancelado_em: String,
 });
 
+const Usuario = mongoose.model('Usuario', usuarioSchema);
 const Agendamento = mongoose.model('Agendamento', agendamentoSchema);
+
+/* ── Email ── */
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+});
+
+async function enviarEmailConfirmacao(email, nome, token) {
+    const BASE_URL = process.env.BASE_URL || 'https://sistema-agendamento-qgta.onrender.com';
+    const link = `${BASE_URL}/auth/confirmar/${token}`;
+
+    await transporter.sendMail({
+        from: `"Studio Harmonia" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Confirme seu cadastro',
+        html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+                <h2 style="font-size:1.4rem;margin-bottom:8px;">Olá, ${nome}!</h2>
+                <p style="color:#555;margin-bottom:24px;">Clique no botão abaixo para confirmar seu cadastro e acessar o sistema de agendamento.</p>
+                <a href="${link}"
+                   style="display:inline-block;background:#0e0e0e;color:#fff;padding:14px 28px;
+                          border-radius:8px;text-decoration:none;font-weight:600;">
+                   Confirmar cadastro
+                </a>
+                <p style="color:#aaa;font-size:12px;margin-top:24px;">Se você não criou uma conta, ignore este email.</p>
+            </div>
+        `,
+    });
+}
 
 /* ── Express ── */
 const app = express();
@@ -47,6 +96,21 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+/* ── Middleware JWT ── */
+function autenticar(req, res, next) {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer '))
+        return res.status(401).json({ error: 'Token não fornecido.' });
+
+    try {
+        const payload = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET || 'fallback-secret');
+        req.usuario = payload;
+        next();
+    } catch {
+        res.status(401).json({ error: 'Token inválido.' });
+    }
+}
 
 /* ── Helpers ── */
 function addMinutes(time, mins) {
@@ -76,7 +140,120 @@ function isValidDate(str) {
     return /^\d{4}-\d{2}-\d{2}$/.test(str) && !isNaN(new Date(str).getTime());
 }
 
-/* ── ROTAS ── */
+/* ══════════════════════════════════════
+   ROTAS DE AUTENTICAÇÃO
+══════════════════════════════════════ */
+
+// POST /auth/cadastro
+app.post('/auth/cadastro', async (req, res) => {
+    const { nome, email, senha } = req.body;
+
+    if (!nome || !email || !senha)
+        return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
+
+    if (senha.length < 6)
+        return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres.' });
+
+    const existe = await Usuario.findOne({ email: email.toLowerCase() });
+    if (existe)
+        return res.status(409).json({ error: 'Este email já está cadastrado.' });
+
+    const hash = await bcrypt.hash(senha, 10);
+    const token = crypto.randomBytes(32).toString('hex');
+
+    const usuario = new Usuario({
+        nome: nome.trim(),
+        email: email.toLowerCase(),
+        senha: hash,
+        token_confirmacao: token,
+    });
+
+    await usuario.save();
+
+    try {
+        await enviarEmailConfirmacao(email, nome, token);
+    } catch (e) {
+        console.error('Erro ao enviar email:', e.message);
+    }
+
+    res.status(201).json({ message: 'Cadastro realizado! Verifique seu email para confirmar a conta.' });
+});
+
+// GET /auth/confirmar/:token
+app.get('/auth/confirmar/:token', async (req, res) => {
+    const usuario = await Usuario.findOne({ token_confirmacao: req.params.token });
+
+    if (!usuario)
+        return res.status(400).send('<h2>Link inválido ou expirado.</h2>');
+
+    usuario.confirmado = true;
+    usuario.token_confirmacao = null;
+    await usuario.save();
+
+    // Redireciona para a página de login
+    const FRONTEND = process.env.FRONTEND_URL || 'https://tldevstudio.github.io/sistema-agendamento';
+    res.redirect(`${FRONTEND}/login.html?confirmado=1`);
+});
+
+// POST /auth/login
+app.post('/auth/login', async (req, res) => {
+    const { email, senha } = req.body;
+
+    if (!email || !senha)
+        return res.status(400).json({ error: 'Email e senha são obrigatórios.' });
+
+    const usuario = await Usuario.findOne({ email: email.toLowerCase() });
+    if (!usuario)
+        return res.status(401).json({ error: 'Email ou senha incorretos.' });
+
+    if (!usuario.confirmado)
+        return res.status(403).json({ error: 'Confirme seu email antes de fazer login.' });
+
+    const senhaOk = await bcrypt.compare(senha, usuario.senha);
+    if (!senhaOk)
+        return res.status(401).json({ error: 'Email ou senha incorretos.' });
+
+    const token = jwt.sign(
+        { id: usuario._id.toString(), nome: usuario.nome, email: usuario.email },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '7d' }
+    );
+
+    res.json({ token, nome: usuario.nome, email: usuario.email });
+});
+
+/* ══════════════════════════════════════
+   ROTAS DO CLIENTE (autenticadas)
+══════════════════════════════════════ */
+
+// GET /cliente/agendamentos
+app.get('/cliente/agendamentos', autenticar, async (req, res) => {
+    const lista = await Agendamento
+        .find({ usuario_id: req.usuario.id })
+        .sort({ date: -1, time: -1 });
+    res.json({ total: lista.length, agendamentos: lista });
+});
+
+// PATCH /cliente/agendamentos/:id/cancelar
+app.patch('/cliente/agendamentos/:id/cancelar', autenticar, async (req, res) => {
+    const ag = await Agendamento.findOne({ id: req.params.id, usuario_id: req.usuario.id });
+
+    if (!ag)
+        return res.status(404).json({ error: 'Agendamento não encontrado.' });
+
+    if (ag.status === 'cancelado')
+        return res.status(400).json({ error: 'Agendamento já está cancelado.' });
+
+    ag.status = 'cancelado';
+    ag.cancelado_em = new Date().toISOString();
+    await ag.save();
+
+    res.json({ message: 'Agendamento cancelado com sucesso.' });
+});
+
+/* ══════════════════════════════════════
+   ROTAS PÚBLICAS
+══════════════════════════════════════ */
 
 // GET /slots?date=YYYY-MM-DD
 app.get('/slots', async (req, res) => {
@@ -85,7 +262,6 @@ app.get('/slots', async (req, res) => {
         return res.status(400).json({ error: 'Parâmetro date inválido. Use YYYY-MM-DD.' });
 
     const agendamentosDia = await Agendamento.find({ date, status: { $ne: 'cancelado' } });
-
     const ocupados = new Set();
     agendamentosDia.forEach(ag => getSlotsOcupados(ag).forEach(s => ocupados.add(s)));
 
@@ -95,7 +271,7 @@ app.get('/slots', async (req, res) => {
 
 // POST /agendamentos
 app.post('/agendamentos', async (req, res) => {
-    const { nome, whatsapp, date, time, service_id, observacao } = req.body;
+    const { nome, whatsapp, date, time, service_id, observacao, token_cliente } = req.body;
 
     if (!nome || !whatsapp || !date || !time || service_id === undefined)
         return res.status(400).json({ error: 'Campos obrigatórios: nome, whatsapp, date, time, service_id.' });
@@ -116,9 +292,22 @@ app.post('/agendamentos', async (req, res) => {
     if (ocupados.has(time))
         return res.status(409).json({ error: 'Horário já ocupado. Por favor, escolha outro.' });
 
+    // Se cliente logado, associa ao usuário
+    let usuario_id = null;
+    let email_cliente = null;
+    if (token_cliente) {
+        try {
+            const payload = jwt.verify(token_cliente, process.env.JWT_SECRET || 'fallback-secret');
+            usuario_id = payload.id;
+            email_cliente = payload.email;
+        } catch { }
+    }
+
     const novo = new Agendamento({
         id: Date.now().toString(),
+        usuario_id,
         nome: nome.trim(),
+        email: email_cliente,
         whatsapp: whatsapp.replace(/\D/g, ''),
         date,
         time,
@@ -154,7 +343,7 @@ app.get('/agendamentos/:id', async (req, res) => {
     res.json(ag);
 });
 
-// PATCH /agendamentos/:id/cancelar
+// PATCH /agendamentos/:id/cancelar (admin)
 app.patch('/agendamentos/:id/cancelar', async (req, res) => {
     const ag = await Agendamento.findOne({ id: req.params.id });
     if (!ag) return res.status(404).json({ error: 'Agendamento não encontrado.' });
